@@ -5,7 +5,7 @@ import { z } from "zod";
 
 const schema = z.object({
   goal: z.enum(["lose", "maintain", "gain"]),
-  gender: z.enum(["mail", "female"]),
+  gender: z.enum(["male", "female"]),
   birthDate: z.iso.date({
     message: "Data de nascimento inválida"
   }),
