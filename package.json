@@ -13,10 +13,14 @@
   "devDependencies": {
     "@types/aws-lambda": "^8.10.152",
     "@types/node": "^24.2.0",
+    "drizzle-kit": "^0.31.4",
     "serverless-offline": "^14.4.0",
+    "tsx": "^4.20.5",
     "typescript": "^5.9.2"
   },
   "dependencies": {
+    "@neondatabase/serverless": "^1.0.1",
+    "drizzle-orm": "^0.44.5",
     "zod": "^4.1.5"
   }
 }
