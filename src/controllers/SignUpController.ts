@@ -1,5 +1,6 @@
 import { eq } from "drizzle-orm";
 import { db } from "../db";
+import { hash } from 'bcryptjs'
 import { HttpRequest, HttpResponse } from "../types/Http";
 import { badRequest, conflict, created } from "../utils/http";
 
@@ -47,11 +48,14 @@ export class SignUpController {
 
     const { account, ...rest } = data
 
+    const hashedPassword = await hash(account.password, 8)
+
     const [user] = await db
       .insert(usersTable)
       .values({
         ...rest,
         ...account,
+        password: hashedPassword,
         calories: 0,
         carbohydrates: 0,
         fats: 0,
