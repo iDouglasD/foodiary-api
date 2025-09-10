@@ -1,11 +1,12 @@
 import { z } from "zod";
 import { compare } from 'bcryptjs'
-
 import { eq } from "drizzle-orm";
+
 import { db } from "../db";
 import { usersTable } from "../db/schema";
 import { HttpRequest, HttpResponse } from "../types/Http";
 import { badRequest, ok, unauthorized } from "../utils/http";
+import { signAccessTokenFor } from "../lib/jwt";
 
 
 const schema = z.object({
@@ -46,8 +47,10 @@ export class SignInController {
       })
     }
 
+    const accessToken = signAccessTokenFor({ userId: user.id })
+
     return ok({
-      user
+      accessToken
     })
   }
 }
