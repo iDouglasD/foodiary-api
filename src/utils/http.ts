@@ -35,3 +35,10 @@ export function conflict(body?: Record<string, any>): HttpResponse {
     body
   };
 }
+
+export function internalServerError(body?: Record<string, any>): HttpResponse {
+  return {
+    statusCode: 500,
+    body
+  };
+}
