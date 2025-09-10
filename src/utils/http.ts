@@ -28,6 +28,12 @@ export function unauthorized(body?: Record<string, any>): HttpResponse {
   };
 }
 
+export function notFound(body?: Record<string, any>): HttpResponse {
+  return {
+    statusCode: 404,
+    body
+  };
+}
 
 export function conflict(body?: Record<string, any>): HttpResponse {
   return {
