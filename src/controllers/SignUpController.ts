@@ -1,10 +1,13 @@
-import { eq } from "drizzle-orm";
-import { db } from "../db";
-import { HttpRequest, HttpResponse } from "../types/Http";
-import { badRequest, conflict, created } from "../utils/http";
-
 import { z } from "zod";
+import { eq } from "drizzle-orm";
+import { hash } from 'bcryptjs'
+
+import { HttpRequest, HttpResponse } from "../types/Http";
+import { badRequest, conflict, created, internalServerError } from "../utils/http";
+import { db } from "../db";
 import { usersTable } from "../db/schema";
+import { signAccessTokenFor } from "../lib/jwt";
+import { calculateGoals } from "../lib/calculateGoals";
 
 const schema = z.object({
   goal: z.enum(["lose", "maintain", "gain"]),
@@ -47,22 +50,35 @@ export class SignUpController {
 
     const { account, ...rest } = data
 
+    const hashedPassword = await hash(account.password, 8)
+
+    const goals = calculateGoals({
+      ...rest,
+      birthDate: new Date(rest.birthDate),
+    })
+
     const [user] = await db
       .insert(usersTable)
       .values({
         ...rest,
         ...account,
-        calories: 0,
-        carbohydrates: 0,
-        fats: 0,
-        proteins: 0
+        ...goals,
+        password: hashedPassword
       })
       .returning({
         id: usersTable.id,
       })
 
+    if (!user) {
+      return internalServerError({
+        error: "Erro ao criar usuário."
+      })
+    }
+
+    const accessToken = signAccessTokenFor({ userId: user.id })
+
     return created({
-      userId: user?.id
+      accessToken
     })
   }
 }
