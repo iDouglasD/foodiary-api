@@ -20,3 +20,31 @@ export function badRequest(body?: Record<string, any>): HttpResponse {
     body
   };
 }
+
+export function unauthorized(body?: Record<string, any>): HttpResponse {
+  return {
+    statusCode: 401,
+    body
+  };
+}
+
+export function notFound(body?: Record<string, any>): HttpResponse {
+  return {
+    statusCode: 404,
+    body
+  };
+}
+
+export function conflict(body?: Record<string, any>): HttpResponse {
+  return {
+    statusCode: 409,
+    body
+  };
+}
+
+export function internalServerError(body?: Record<string, any>): HttpResponse {
+  return {
+    statusCode: 500,
+    body
+  };
+}

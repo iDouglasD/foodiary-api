@@ -1,7 +1,13 @@
-import { HttpRequest, HttpResponse } from "../types/Http";
-import { badRequest, created } from "../utils/http";
-
 import { z } from "zod";
+import { eq } from "drizzle-orm";
+import { hash } from 'bcryptjs'
+
+import { HttpRequest, HttpResponse } from "../types/Http";
+import { badRequest, conflict, created, internalServerError } from "../utils/http";
+import { db } from "../db";
+import { usersTable } from "../db/schema";
+import { signAccessTokenFor } from "../lib/jwt";
+import { calculateGoals } from "../lib/calculateGoals";
 
 const schema = z.object({
   goal: z.enum(["lose", "maintain", "gain"]),
@@ -29,8 +35,50 @@ export class SignUpController {
       })
     }
 
+    const userAlreadyExists = await db.query.usersTable.findFirst({
+      columns: {
+        email: true
+      },
+      where: eq(usersTable.email, data.account.email)
+    })
+
+    if (userAlreadyExists) {
+      return conflict({
+        error: "Já existe uma conta com esse e-mail."
+      })
+    }
+
+    const { account, ...rest } = data
+
+    const hashedPassword = await hash(account.password, 8)
+
+    const goals = calculateGoals({
+      ...rest,
+      birthDate: new Date(rest.birthDate),
+    })
+
+    const [user] = await db
+      .insert(usersTable)
+      .values({
+        ...rest,
+        ...account,
+        ...goals,
+        password: hashedPassword
+      })
+      .returning({
+        id: usersTable.id,
+      })
+
+    if (!user) {
+      return internalServerError({
+        error: "Erro ao criar usuário."
+      })
+    }
+
+    const accessToken = signAccessTokenFor({ userId: user.id })
+
     return created({
-      data
+      accessToken
     })
   }
 }
