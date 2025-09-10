@@ -7,6 +7,7 @@ import { badRequest, conflict, created, internalServerError } from "../utils/htt
 import { db } from "../db";
 import { usersTable } from "../db/schema";
 import { signAccessTokenFor } from "../lib/jwt";
+import { calculateGoals } from "../lib/calculateGoals";
 
 const schema = z.object({
   goal: z.enum(["lose", "maintain", "gain"]),
@@ -51,16 +52,18 @@ export class SignUpController {
 
     const hashedPassword = await hash(account.password, 8)
 
+    const goals = calculateGoals({
+      ...rest,
+      birthDate: new Date(rest.birthDate),
+    })
+
     const [user] = await db
       .insert(usersTable)
       .values({
         ...rest,
         ...account,
-        password: hashedPassword,
-        calories: 0,
-        carbohydrates: 0,
-        fats: 0,
-        proteins: 0
+        ...goals,
+        password: hashedPassword
       })
       .returning({
         id: usersTable.id,
