@@ -26,7 +26,7 @@ export class MeController {
     }
 
     return ok({
-      ...user
+      user
     })
   }
 }
