@@ -12,6 +12,14 @@ provider:
   environment:
     DATABASE_URL: ${env:DATABASE_URL}
     JWT_SECRET: ${env:JWT_SECRET}
+    BUCKET_NAME: !Ref UploadsBucket
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - s3:PutObject
+          Resource: !Sub '${UploadsBucket.Arn}/*'
 
 package:
   individually: true
@@ -26,17 +34,44 @@ functions:
     handler: src/functions/signin.handler
     events:
       - httpApi:
-          path: /signin
           method: POST
+          path: /signin
   signup:
     handler: src/functions/signup.handler
     events:
       - httpApi:
-          path: /signup
           method: POST
+          path: /signup
   me:
     handler: src/functions/me.handler
     events:
       - httpApi:
           path: /me
           method: GET
+  createMeal:
+    handler: src/functions/createMeal.handler
+    events:
+      - httpApi:
+          method: POST
+          path: /meals
+  listMeals:
+    handler: src/functions/listMeals.handler
+    events:
+      - httpApi:
+          method: GET
+          path: /meals
+  getMealById:
+    handler: src/functions/getMealById.handler
+    events:
+      - httpApi:
+          method: GET
+          path: /meals/{mealId}
+
+resources:
+  Resources:
+    UploadsBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: foodiary-files-bucket-uploads
+    
+
