@@ -3,6 +3,8 @@ import { HttpResponse, ProtectedHttpRequest } from "../types/Http";
 import { badRequest, created } from "../utils/http";
 import { db } from "../db";
 import { mealsTable } from "../db/schema";
+import { PutObjectCommand } from "@aws-sdk/client-s3";
+import { randomUUID } from "crypto";
 
 const schema = z.object({
   fileType: z.enum(['audio/m4a', 'image/jpeg']),
@@ -17,6 +19,15 @@ export class CreateMealController {
         errors: error.issues
       })
     }
+
+    const fileId = randomUUID()
+    const ext = data.fileType === 'audio/m4a' ? '.m4a' : '.jpg'
+    const fileKey = `${fileId}${ext}`
+
+    const command = new PutObjectCommand({
+      Bucket: 'foodiary-files-bucket-uploads',
+      Key: fileKey,
+    })
 
     const [meal] = await db
       .insert(mealsTable)
