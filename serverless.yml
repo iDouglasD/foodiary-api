@@ -9,17 +9,23 @@ provider:
   region: us-east-1
   runtime: nodejs22.x
   architecture: arm64
+  timeout: 28
   environment:
     DATABASE_URL: ${env:DATABASE_URL}
     JWT_SECRET: ${env:JWT_SECRET}
-    BUCKET_NAME: !Ref UploadsBucket
+    BUCKET_NAME: ${self:custom.uploadsBucketName}
+    MEALS_QUEUE_URL: !Ref MealsQueue
   iam:
     role:
       statements:
         - Effect: Allow
           Action:
             - s3:PutObject
+            - s3:GetObject
           Resource: !Sub '${UploadsBucket.Arn}/*'
+        - Effect: Allow
+          Action: sqs:SendMessage
+          Resource: !GetAtt MealsQueue.Arn
 
 package:
   individually: true
@@ -28,6 +34,9 @@ build:
   esbuild:
     minify: true
     sourcemap: false
+ 
+custom:
+  uploadsBucketName: foodiary-files-bucket-uploads
   
 functions:
   signin:
@@ -68,6 +77,7 @@ functions:
           path: /meals/{mealId}
   fileUploadedEvent:
     handler: src/functions/fileUploadedEvent.handler
+    timeout: 120
     events:
       - s3:
           bucket: !Ref UploadsBucket
@@ -80,7 +90,7 @@ resources:
     UploadsBucket:
       Type: AWS::S3::Bucket
       Properties:
-        BucketName: foodiary-files-bucket-uploads
+        BucketName: ${self:custom.uploadsBucketName}
     MealsQueue:
       Type: AWS::SQS::Queue
       Properties:
