@@ -9,17 +9,23 @@ provider:
   region: us-east-1
   runtime: nodejs22.x
   architecture: arm64
+  timeout: 28
   environment:
     DATABASE_URL: ${env:DATABASE_URL}
     JWT_SECRET: ${env:JWT_SECRET}
-    BUCKET_NAME: !Ref UploadsBucket
+    BUCKET_NAME: ${self:custom.uploadsBucketName}
+    MEALS_QUEUE_URL: !Ref MealsQueue
   iam:
     role:
       statements:
         - Effect: Allow
           Action:
             - s3:PutObject
+            - s3:GetObject
           Resource: !Sub '${UploadsBucket.Arn}/*'
+        - Effect: Allow
+          Action: sqs:SendMessage
+          Resource: !GetAtt MealsQueue.Arn
 
 package:
   individually: true
@@ -28,6 +34,9 @@ build:
   esbuild:
     minify: true
     sourcemap: false
+ 
+custom:
+  uploadsBucketName: foodiary-files-bucket-uploads
   
 functions:
   signin:
@@ -68,18 +77,36 @@ functions:
           path: /meals/{mealId}
   fileUploadedEvent:
     handler: src/functions/fileUploadedEvent.handler
+    timeout: 120
     events:
       - s3:
           bucket: !Ref UploadsBucket
           event: s3:ObjectCreated:*
           existing: true
           forceDeploy: true
+  processMeal:
+    handler: src/functions/processMeal.handler
+    events:
+      - sqs:
+          arn: !GetAtt MealsQueue.Arn
+          batchSize: 1
 
 resources:
   Resources:
     UploadsBucket:
       Type: AWS::S3::Bucket
       Properties:
-        BucketName: foodiary-files-bucket-uploads
-    
+        BucketName: ${self:custom.uploadsBucketName}
+    MealsQueue:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: meals-queue
+        VisibilityTimeout: 60
+        RedrivePolicy:
+          maxReceiveCount: 1
+          deadLetterTargetArn: !GetAtt MealsDLQ.Arn
+    MealsDLQ:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: meals-queue-dlq
 
