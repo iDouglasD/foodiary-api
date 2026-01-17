@@ -23,12 +23,14 @@ export class CreateMealController {
       })
     }
 
+    const bucketName = process.env.BUCKET_NAME
+
     const fileId = randomUUID()
     const ext = data.fileType === 'audio/m4a' ? '.m4a' : '.jpg'
     const fileKey = `${fileId}${ext}`
 
     const command = new PutObjectCommand({
-      Bucket: process.env.BUCKET_NAME,
+      Bucket: bucketName,
       Key: fileKey,
     })
 
@@ -38,15 +40,14 @@ export class CreateMealController {
       .insert(mealsTable)
       .values({
         userId,
-        inputFileKey: 'input_file_key',
+        inputFileKey: fileKey,
         inputType: data.fileType === 'audio/m4a' ? 'audio' : 'picture',
         status: 'uploading',
         icon: '',
         name: '',
-        foods: []
-      }).returning({
-        id: mealsTable.id
+        foods: [],
       })
+      .returning({ id: mealsTable.id });
 
     if (!meal) {
       return badRequest({
